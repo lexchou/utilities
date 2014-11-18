@@ -9,6 +9,7 @@
 * nmap 用来扫描网络以及对主机进行端口扫描
 * tcpdump 用来抓包
 * ISC DHCP Server 这个脚本读取DHCP Server的配置文件，找到固定分配的IP地址，并在nmap发现的主机里进行排除
+用法：配置好本地的mutt确保能正常发送邮件，修改脚本里的配置变量，修改visudo权限确保当前用户执行tcpdump和nmap不需要输入密码。然后将当前脚本放到crontab里每几分钟运行一次。对于没有使用ISC DHCP Server的，修改reserved_ips函数，直接echo需要过滤掉的IP地址即可。
 
 ## [webcam](webcam) 摄像头入侵检测
 这个bash脚本用来将家里的普通摄像头变成一个带入侵检测功能的安防系统。详细说明参考我的博客 [使用BASH来实现一个简单的摄像头运动检测监控程序](http://chou.it/2014/02/bash-web-camera-capture-and-motion-detect/)
