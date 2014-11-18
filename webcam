@@ -1,0 +1,40 @@
+#!/bin/bash
+ARCHIVE=~/webcam
+mkdir -p archives
+while [[ 1 ]]
+do
+mplayer -vo png -frames 2 tv:// > /dev/null 2>&1
+convert 00000002.png 00000002.jpg
+DIR=`date +'%Y-%m-%d/%H/%M'`
+DATE=`date`
+ARCHIVE=archives/`date +'%Y-%m-%d_%H_%M_%S'`.jpg
+[[ ! -d $DIR ]] && mkdir -p $DIR
+FILE=$DIR/`date +'%S'`.jpg
+mv 00000002.jpg $FILE
+rm -f latest.jpg
+ln -s $FILE latest.jpg
+
+cmp()
+{
+    compare -fuzz 10% $1 $2 diff.jpg
+    convert diff.jpg +dither -colors 2 -normalize diff_norm.jpg
+    deviation=`identify -verbose diff_norm.jpg | grep 'deviation' | tail -1 | awk '{print $3}'`
+    [[ `echo "$deviation > 10" | bc` -eq '1' ]] && return 1
+    return 0
+}
+
+if [[ -r $LAST_FILE ]]; then
+    cmp $LAST_FILE $FILE
+    if [[ $? == 1 ]]; then
+        echo "Motion detected, deviation = $deviation"
+        cp $FILE $ARCHIVE
+        rm -f latest_archive.jpg
+        ln -s $ARCHIVE latest_archive.jpg
+        PREV_FILE=$LAST_FILE
+        scp -C $ARCHIVE chou.it:~/public/webcam &
+        echo "Motion detected at $DATE, URL: http://chou.it/public/webcam/`basename $ARCHIVE`" |mutt -s "WARNING: Invasion detected" lex@chou.it -a $ARCHIVE
+    fi
+fi
+LAST_FILE=$FILE
+sleep 1
+done
