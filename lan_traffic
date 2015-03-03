@@ -1,0 +1,81 @@
+#!/usr/bin/env perl
+use Net::Pcap;
+use NetPacket::Ethernet;
+use NetPacket::IP;
+use Time::HiRes qw(time);
+use Net::Subnet;
+use strict;
+use warnings;
+
+my $err;
+my $traffic = {};
+my $traffic2 = {};
+my $last_time = time;
+
+my $is_rfc1918 = subnet_matcher qw(
+        10.0.0.0/8
+        172.16.0.0/12
+        192.168.0.0/16
+    );
+
+my $dev = $ARGV[0] or die "Usage: lan_traffic interface \n";
+
+$dev = Net::Pcap::lookupdev(\$err);
+die "Unable to determine network device for monitoring - $err\n" if defined $err;
+
+my ($address, $netmask);
+Net::Pcap::lookupnet($dev, \$address, \$netmask, \$err);
+die "Unable to look up device information for $dev - $err\n" if defined $err;
+
+my $object;
+$object = Net::Pcap::open_live($dev, 1500, 0, 0, \$err);
+die "Unable to create packet capture on device $dev - $err\n" if defined $err;
+
+
+print "...\n";
+Net::Pcap::loop($object, -1, \&syn_packets, '') or die "Unable to perform packet capture on device $dev\n";
+Net::Pcap::close($object);
+
+
+sub format_size
+{
+    my $s = shift;
+    return sprintf("%.2fB", $s) if $s < 1024;
+    return sprintf("%.2fKB", $s / 1024) if $s < 1024 * 1024;
+    return sprintf("%.2fMB", $s / 1024 / 1024);
+}
+
+sub show_data
+{
+    my $time = time;
+    my $delta = $time - $last_time;
+    return if $delta < 1;
+    print "===\n";
+    my $total = 0;
+    for my $ip (keys %$traffic)
+    {
+        my $len = $traffic->{$ip};
+        my $last_len = $traffic2->{$ip} || 0;
+        my $speed = ($len - $last_len) / $delta;
+        next if $speed <= 0;
+        $total += $speed;
+        print "$ip " . format_size($speed) . "/s\n";
+    }
+    printf("Total speed : %s\n", format_size($total));
+    $traffic2 = $traffic;
+    $traffic = {};
+    $last_time = $time;
+}
+
+sub syn_packets {
+    my ($user_data, $header, $packet) = @_;
+    my $ether_data = NetPacket::Ethernet::strip($packet);
+    my $ip = NetPacket::IP->decode($ether_data);
+    my $src_ip = $ip->{src_ip};
+    my $dest_ip = $ip->{dest_ip};
+    return if($is_rfc1918->($src_ip) && $is_rfc1918->($dest_ip));
+    $traffic->{$src_ip} += $ip->{len} if $is_rfc1918->($src_ip);
+    $traffic->{$dest_ip} += $ip->{len} if $is_rfc1918->($dest_ip);
+    show_data();
+}
+

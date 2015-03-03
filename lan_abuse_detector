@@ -9,6 +9,7 @@ DUMP_DIR=/storage/log
 
 reserved_ips() {
     fgrep 'fixed-address' </etc/dhcp/dhcpd.conf| sed 's/.*fixed-address \(.*\);/\1/'
+    echo 10.0.0.223
 }
 
 capture() {
