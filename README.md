@@ -32,3 +32,8 @@
 * mplayer 这软件不只是是一个播放器，webcam脚本使用这个进行摄像头捕捉
 * imagemagick 这个软件提供命令行接口的图像处理能力
 * mutt 发送邮件
+
+
+## [repl_files](repl_files) 重复文件检测
+一个简单的perl脚本，多线程（默认4线程）用来检测指定目录下的重复文件，用法：
+./repl_files 目录1 目录2 目录3...

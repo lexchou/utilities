@@ -1,0 +1,26 @@
+#!/usr/bin/perl
+use File::Find;
+use Digest::MD5::File qw(file_md5_hex);
+use threads;
+use threads::shared;
+my (@files, %hashes) :shared;
+find(sub{push @files, $File::Find::name if -f $File::Find::name}, @ARGV);
+die "Usage repl_files directores\n" unless @files;
+my @threads = map{async { 
+    while(my $filename = shift @files)
+    {
+        my $md5 = file_md5_hex($filename);
+        my $list = $hashes{$md5};
+        print "$filename . $md5\n";
+        $list = $hashes{$md5} = shared_clone([]) unless($list);
+        push @$list, $filename
+    }
+}} 1..4;
+$_->join for (@threads);
+for my $hash (keys %hashes)
+{
+    my $files = $hashes{$hash};
+    my $count = scalar(@$files);
+    next if $count == 1;
+    print "Files duplicated $count times:\n" . join("\n", (map {"\t$_"} @$files)) . "\n"x2;
+}
