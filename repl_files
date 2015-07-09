@@ -11,7 +11,6 @@ my @threads = map{async {
     {
         my $md5 = file_md5_hex($filename);
         my $list = $hashes{$md5};
-        print "$filename . $md5\n";
         $list = $hashes{$md5} = shared_clone([]) unless($list);
         push @$list, $filename
     }
