@@ -7,8 +7,7 @@ my (@files, %hashes) :shared;
 find(sub{push @files, $File::Find::name if -f $File::Find::name}, @ARGV);
 die "Usage repl_files directores\n" unless @files;
 my @threads = map{async { 
-    while(my $filename = shift @files)
-    {
+    while(my $filename = shift @files) {
         my $md5 = file_md5_hex($filename);
         my $list = $hashes{$md5};
         $list = $hashes{$md5} = shared_clone([]) unless($list);
@@ -16,10 +15,8 @@ my @threads = map{async {
     }
 }} 1..4;
 $_->join for (@threads);
-for my $hash (keys %hashes)
-{
+for my $hash (keys %hashes) {
     my $files = $hashes{$hash};
     my $count = scalar(@$files);
-    next if $count == 1;
-    print "Files duplicated $count times:\n" . join("\n", (map {"\t$_"} @$files)) . "\n"x2;
+    print "Files duplicated $count times:\n" . join("\n", (map {"\t$_"} @$files)) . "\n"x2 unless $count == 1;
 }
