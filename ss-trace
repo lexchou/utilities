@@ -1,0 +1,32 @@
+#!/usr/bin/perl
+use strict;
+use Geo::IP;
+my $pid = `pidof ss-server`;
+chop($pid);
+die "Cannot find ss-server running\n" if $pid eq "";
+open my $file, "/proc/$pid/net/tcp" or die "Cannot open TCP data\n";
+my %ips;
+while(<$file>)
+{
+    my ($local, $localp, $rem, $remp) = /(\w{8}):(\w{4}) (\w{8}):(\w{4}) 01 /;
+    next unless $local;
+    next unless hex($localp) == 8388;
+    $local = join(".", map {hex($_)} reverse($local =~ /(..)/g));
+    $rem = join(".", map {hex($_)} reverse($rem =~ /(..)/g));
+    $ips{$rem} = 1;
+}
+close $file;
+
+my $gi = Geo::IP->open("/usr/share/GeoIP/GeoIPCity.dat", GEOIP_STANDARD);
+my $currentIP = $ENV{'SSH_CONNECTION'};
+$currentIP =~ s/\s.*//;
+
+
+for my $ip(keys %ips)
+{
+    my $rec = $gi->record_by_addr($ip);
+    my $city = $rec->city;
+    my $country = $rec->country_name;
+    print "*" if $currentIP eq $ip;
+    print "$ip $country $city\n";
+}
