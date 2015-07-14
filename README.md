@@ -42,7 +42,7 @@
 ```
 
 
-## [ss_trace](ss_trace) Shadowsocks 客户端统计
+## [ss-trace](ss-trace) Shadowsocks 客户端统计
 写的一个perl脚本用来跟踪有哪些客户端连到我的Shadowsocks服务器。
 
 在服务器上执行该脚本即可输出IP地址以及国家城市，当前SSH登录的IP前面会显示星号。
