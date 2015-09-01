@@ -49,7 +49,6 @@
 
 ## [db_diff](db_diff) 数据库对比工具
 一个用来比较两个MySQL数据库并生成对应的DDL代码的脚本，这是2009年刚学python的时候写的一个小脚本，有人要就给找出来了
-一个简单的perl脚本，多线程（默认4线程）用来检测指定目录下的重复文件，用法：
 ```
 ./db_diff user:passwd@host/db user:passwd@host/db
 ```
