@@ -1,0 +1,122 @@
+#!/usr/bin/env python
+import MySQLdb
+from sys import argv
+import re
+
+
+def db_scheme(server, user, passwd, db, port = 3306):
+    ret = []
+    print "#Connecting to server %s by %s" % (server, user)
+    db = MySQLdb.connect(host=server, user = user, passwd = passwd, db = db, port = port)
+    print "#Reading database scheme"
+    ct = db.cursor()
+    ct = db.cursor()
+    ct.execute("SHOW TABLES");
+    for (table,) in ct.fetchall():
+        ct.execute("DESC " + table)
+        fields = list(ct.fetchall())
+        ret.append((table, fields))
+    ct.close()
+    db.close()
+    return ret
+def make_map(data, keys):
+    ret = {}
+    for d in data:
+        if d[0] in keys:
+            ret[d[0]] = d
+    return ret
+def items(data, keys):
+    ret = []
+    for d in data:
+        if d[0] in keys:
+            ret.append(d)
+    return ret
+def diff(a, b):
+    sa = set([x[0] for x in a])
+    sb = set([x[0] for x in b])
+    d = sa.intersection(sb)
+    return (make_map(a, sa - sb), zip(items(a, d), items(b, d)), make_map(b, sb - sa))
+
+def FIELD(field):
+    ret = "`%s` %s" % (field[0], field[1])
+    if field[2] == "NO":
+        ret += " NOT NULL"                        
+    return ret                                                  
+def CREATE_TABLE(table):
+    PRI = []
+    print "CREATE TABLE `%s` (" % table[0]
+    for field in table[1]:
+        print "\t%s," % FIELD(field)
+        if field[3] == "PRI":
+            PRI.append(field[0])                             
+    if len(PRI) > 0:
+        print "\tPRIMARY KEY (`%s`)" % "`, `".join(PRI)
+    print ") ENGINE=InnoDB DEFAULT CHARSET=utf8;"
+def findPreviousField(fields, name):
+    lastField = None
+    for field in fields:
+        if field[0] == name:
+            return lastField                           
+        lastField = field
+    return None                         
+def ALTER_TABLE(new, old):
+    (added, changed, deleted) = diff(new[1], old[1])
+    for name in added:
+        prev = findPreviousField(new[1], name)
+        if prev != None:
+            print "ALTER TABLE `%s` ADD COLUMN %s AFTER `%s`;" % (new[0], FIELD(added[name]), prev[0]) 
+        else:            
+            print "ALTER TABLE `%s` ADD COLUMN %s;" % (new[0], FIELD(added[name])) 
+    pkChanged = False
+    newPK = []
+    for columns in changed:
+        a, b = columns
+        if a[0:3] != b[0:3]:
+            print "ALTER TABLE `%s` CHANGE COLUMN `%s` %s;" % (new[0], b[0], FIELD(a)) 
+        elif a[3] != b[3]:
+            pkChanged = True
+            if a[3] == "PRI":#add new primary key
+                print "# WARNING: New primary key %s added" % a[0]
+            else:#drop primary key
+                print "# WARNING: Old primary key %s removed" % b[0]
+    if pkChanged:
+        newPK = [f[0] for f in new[1] if f[3] == "PRI"]
+        print "ALTER TABLE `%s` DROP PRIMARY KEY;" % new[0];
+        if len(newPK) > 0:
+            print "ALTER TABLE `%s` ADD PRIMARY KEY (`%s`);" % (new[0], "`, `".join(newPK))
+                
+
+    for name in deleted:
+        print "ALTER TABLE `%s` DROP COLUMN `%s`;" % (old[0], deleted[name][0])
+
+def main():                                                 
+    if len(argv) != 3:
+        print "Usage: ./db_diff user:passwd@host/db user:passwd@host/db"
+        return
+    u = re.compile("(.*):(.*)@(.*)/(.*)")
+    a = u.match(argv[1])
+    b = u.match(argv[2])
+    if a == None or b == None:
+        print "Invalid argument"
+        return                                
+    a = a.groups()
+    b = b.groups()                  
+    newdb = db_scheme(a[2], a[0], a[1], a[3])
+    olddb = db_scheme(b[2], b[0], b[1], b[3])
+    (added, changed, deleted) = diff(newdb, olddb)
+    
+
+    print "#%d tables added:" % len(added)
+    for name in added:
+        CREATE_TABLE(added[name])
+    print "#%d tables changed:" % len(changed)
+    for dbs in changed:
+        ALTER_TABLE(*dbs)
+    print "#%d tables removed:" % len (deleted)
+    for name in deleted:
+        print "DROP TABLE `%s`;" % name;
+
+
+
+if __name__ == "__main__":
+    main()
