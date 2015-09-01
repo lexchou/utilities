@@ -36,10 +36,20 @@
 
 ## [repl_files](repl_files) 重复文件检测
 一个简单的perl脚本，多线程（默认4线程）用来检测指定目录下的重复文件，用法：
+
+```
 ./repl_files 目录1 目录2 目录3...
+```
+
+
+## [ss-trace](ss-trace) Shadowsocks 客户端统计
+写的一个perl脚本用来跟踪有哪些客户端连到我的Shadowsocks服务器。
+
+在服务器上执行该脚本即可输出IP地址以及国家城市，当前SSH登录的IP前面会显示星号。
 
 ## [db_diff](db_diff) 数据库对比工具
 一个用来比较两个MySQL数据库并生成对应的DDL代码的脚本，这是2009年刚学python的时候写的一个小脚本，有人要就给找出来了
 一个简单的perl脚本，多线程（默认4线程）用来检测指定目录下的重复文件，用法：
+```
 ./db_diff user:passwd@host/db user:passwd@host/db
-
+```
