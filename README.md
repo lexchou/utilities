@@ -53,3 +53,16 @@
 ```
 ./db_diff user:passwd@host/db user:passwd@host/db
 ```
+
+## [fallout4.py](fallout4.py) 辐射4里终端破解脚本
+最近有空在玩辐射4，每次人肉破解里面终端机有时候会出错，比较浪费时间，所以写了个脚本用来干这事。
+
+使用方法：
+```
+./fallout.py
+TRACT 0
+BLOCK 2
+SHAVE 2
+```
+输入三次后脚本会输出符合条件的单词
+
