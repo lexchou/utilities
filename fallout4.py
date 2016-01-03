@@ -4,7 +4,7 @@ import re
 
 
 def check(word, n):
-    return lambda x : False if len(word) != len(x) else sum(map(lambda x: 1 if x[0] == x[1] else 0, zip(word, x))) == n
+    return lambda x : len(word) == len(x) and sum(map(lambda x:  int(x[0] == x[1]), zip(word, x))) == n
 
 words = list(map(lambda x : x.upper().strip(), open("wordsEn.txt")))
 
