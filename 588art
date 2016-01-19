@@ -1,0 +1,14 @@
+#!/usr/bin/env perl
+use LWP::Simple;
+for $page(0..11)
+{
+    my $html=get("http://588art.com/zhuanti/5-$page.html");
+    for my $id($html =~ /data-id=(\d+)/g)
+    {
+        $html = get("http://588art.com/linggan/$id.html");
+        my ($url) = $html =~ /<div class="pic">\s*<img src="([^"!]+)(!.*)?">/;
+        my ($fileName) = $url =~ /\/([^\/]*)$/;
+        $fileName = "pics/$fileName";
+        system("rm -f $fileName;wget $url -O $fileName") if $url;
+    }
+}
