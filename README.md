@@ -65,3 +65,17 @@ SHAVE 2
 ```
 输入三次后脚本会输出符合条件的单词
 
+
+## [attack-wifi](attack-wifi) WiFi 热点攻击脚本
+对付楼上恶邻的脚本，每次有矛盾就让他家一天上不了网。
+
+使用方法：
+```
+./attack-wifi wifi热点
+```
+该脚本会使用aircrack-ng套件来发送Deauth给所有连上该热点的客户端设备来断开网络连接，如果对方重启了路由器或者更改了channel，这个脚本也会自动更新本地设备的channel以便无人值守持续攻击，因为该脚本需要修改本地wlan0设备的channel，所以需要root权限。
+
+
+依赖的第三方工具：
+* aircrack-ng
+
